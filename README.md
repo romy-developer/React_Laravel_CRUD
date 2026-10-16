@@ -56,6 +56,7 @@ DB_PORT=3306
 DB_DATABASE=crud_app
 DB_USERNAME=root
 DB_PASSWORD=
+APP_URL=http://localhost:8000
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -95,7 +96,7 @@ Start the Laravel API from one terminal:
 
 ```powershell
 cd backend
-php artisan serve --host=127.0.0.1 --port=8000
+.\dev-server.cmd
 ```
 
 Start the React app from another terminal:
@@ -106,7 +107,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL shown in the terminal (normally `http://localhost:5173`). Start MySQL before migrating or using the API. If the PHP executable is not on PATH, use `D:\xampp\php\php.exe artisan serve --host=127.0.0.1 --port=8000`.
+Open the Vite URL shown in the terminal (normally `http://localhost:5173`). Start MySQL before migrating or using the API. The backend launcher sets PHP's upload temporary directory to a writable project-local folder so image uploads don't emit a PHP startup notice.
 
 ## 7. REST API Examples
 
