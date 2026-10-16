@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const emptyProduct = {
   name: '',
+  category: 'Other',
+  condition: 'New',
   description: '',
   price: '',
   quantity: '',
+  image: null,
+  remove_image: false,
 };
 
 function fieldError(errors, field) {
@@ -13,18 +17,50 @@ function fieldError(errors, field) {
 
 export default function ProductForm({ product, onSubmit, onCancel, saving, errors }) {
   const [values, setValues] = useState(emptyProduct);
+  const [imagePreview, setImagePreview] = useState('');
+  const previewObjectUrl = useRef('');
 
   useEffect(() => {
     setValues(product ? {
       name: product.name,
+      category: product.category || 'Other',
+      condition: product.condition || 'New',
       description: product.description || '',
       price: String(product.price),
       quantity: String(product.quantity),
+      image: null,
+      remove_image: false,
     } : emptyProduct);
+    if (previewObjectUrl.current) {
+      URL.revokeObjectURL(previewObjectUrl.current);
+      previewObjectUrl.current = '';
+    }
+    setImagePreview(product?.image_url || '');
   }, [product]);
+
+  useEffect(() => () => {
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+  }, []);
 
   function updateField(event) {
     setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function updateImage(event) {
+    const file = event.target.files?.[0] || null;
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+    previewObjectUrl.current = file ? URL.createObjectURL(file) : '';
+    setImagePreview(previewObjectUrl.current || (values.remove_image ? '' : product?.image_url || ''));
+    setValues((current) => ({ ...current, image: file, remove_image: false }));
+  }
+
+  function removeImage() {
+    if (previewObjectUrl.current) {
+      URL.revokeObjectURL(previewObjectUrl.current);
+      previewObjectUrl.current = '';
+    }
+    setImagePreview('');
+    setValues((current) => ({ ...current, image: null, remove_image: Boolean(product?.image_url) }));
   }
 
   async function handleSubmit(event) {
@@ -33,6 +69,7 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
 
     if (saved && !product) {
       setValues(emptyProduct);
+      setImagePreview('');
     }
   }
 
@@ -46,7 +83,7 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
         {product && <span className="edit-mark">Editing #{product.id}</span>}
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} encType="multipart/form-data">
         <label className="field">
           <span>Product name</span>
           <input
@@ -61,6 +98,39 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
           />
           {fieldError(errors, 'name') && <small className="field-error" id="name-error">{fieldError(errors, 'name')}</small>}
         </label>
+
+        <label className="field">
+          <span>Category</span>
+          <select name="category" value={values.category} onChange={updateField} required aria-invalid={Boolean(fieldError(errors, 'category'))} aria-describedby={fieldError(errors, 'category') ? 'category-error' : undefined}>
+            <option>Electronics</option>
+            <option>Clothing</option>
+            <option>Home &amp; Kitchen</option>
+            <option>Books</option>
+            <option>Other</option>
+          </select>
+          {fieldError(errors, 'category') && <small className="field-error" id="category-error">{fieldError(errors, 'category')}</small>}
+        </label>
+
+        <fieldset className="field radio-field" aria-describedby={fieldError(errors, 'condition') ? 'condition-error' : undefined}>
+          <legend>Condition</legend>
+          <div className="radio-options">
+            {['New', 'Used', 'Refurbished'].map((condition) => (
+              <label className="radio-option" key={condition}>
+                <input type="radio" name="condition" value={condition} checked={values.condition === condition} onChange={updateField} />
+                <span>{condition}</span>
+              </label>
+            ))}
+          </div>
+          {fieldError(errors, 'condition') && <small className="field-error" id="condition-error">{fieldError(errors, 'condition')}</small>}
+        </fieldset>
+
+        <div className="field image-field">
+          <span>Product image <span className="optional">Optional · JPG, PNG or WebP, up to 5 MB</span></span>
+          {imagePreview && <img className="image-preview" src={imagePreview} alt="Product preview" />}
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp" onChange={updateImage} />
+          {imagePreview && <button className="table-action table-action-danger image-remove" type="button" onClick={removeImage}>Remove image</button>}
+          {fieldError(errors, 'image') && <small className="field-error">{fieldError(errors, 'image')}</small>}
+        </div>
 
         <label className="field">
           <span>Description <span className="optional">Optional</span></span>

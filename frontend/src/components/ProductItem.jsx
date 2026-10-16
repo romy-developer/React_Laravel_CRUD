@@ -1,4 +1,4 @@
-export default function ProductItem({ product, onEdit, onDelete, deleting }) {
+export default function ProductItem({ product, onView, onEdit, onDelete, deleting }) {
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -11,6 +11,7 @@ export default function ProductItem({ product, onEdit, onDelete, deleting }) {
       <td className="numeric-cell">{formattedPrice}</td>
       <td className="numeric-cell">{product.quantity.toLocaleString()}</td>
       <td className="actions-cell">
+        <button className="table-action" type="button" onClick={() => onView(product)} aria-label={`View ${product.name}`}>View</button>
         <button className="table-action" type="button" onClick={() => onEdit(product)} aria-label={`Edit ${product.name}`}>
           Edit
         </button>

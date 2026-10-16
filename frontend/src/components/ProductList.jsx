@@ -1,6 +1,6 @@
 import ProductItem from './ProductItem.jsx';
 
-export default function ProductList({ products, loading, error, onEdit, onDelete, deletingId, onRetry }) {
+export default function ProductList({ products, loading, error, onView, onEdit, onDelete, deletingId, onRetry }) {
   return (
     <section className="panel inventory-panel" aria-labelledby="inventory-heading">
       <div className="section-heading inventory-heading">
@@ -41,6 +41,7 @@ export default function ProductList({ products, loading, error, onEdit, onDelete
                 <ProductItem
                   key={product.id}
                   product={product}
+                  onView={onView}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   deleting={deletingId === product.id}

@@ -1,5 +1,7 @@
 # Product Inventory CRUD
 
+> Ecommerce expansion scope and production delivery plan: [ECOMMERCE_ROADMAP.md](ECOMMERCE_ROADMAP.md).
+
 A small full-stack product manager: React + Vite frontend, Laravel REST API, and MySQL database. Authentication is not included.
 
 ## Project Structure
