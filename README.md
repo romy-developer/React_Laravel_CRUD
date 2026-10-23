@@ -1,8 +1,8 @@
-# Product Inventory CRUD
+# Fieldnotes Store
 
 > Ecommerce expansion scope and production delivery plan: [ECOMMERCE_ROADMAP.md](ECOMMERCE_ROADMAP.md).
 
-A small full-stack product manager: React + Vite frontend, Laravel REST API, and MySQL database. Authentication is not included.
+A single-store ecommerce MVP built with React + Vite, a Laravel API, and MySQL. The customer site supports catalogue search, shareable product detail pages, guest carts, account-synced carts with guest-cart merging, saved delivery addresses, timestamped order status history, shipment tracking details, coupon codes, confirmation and status emails, and cash-on-delivery checkout. Store managers can prepare unpublished products, maintain SKUs and compare-at pricing, review per-product stock movement history, create and disable promotions, review order and revenue summaries, and fulfill orders with carrier and tracking information. Admins assign fulfillment orders; staff see and update only their assigned queue. Product, promotion, customer, and refund management require an administrator account.
 
 ## Project Structure
 
@@ -62,6 +62,8 @@ FRONTEND_URL=http://localhost:5173
 
 For a fresh checkout, copy `backend/.env.example` to `backend/.env`, update the values for your MySQL account, then run `php artisan key:generate` from `backend/`.
 
+Password reset and email verification messages use Laravel's configured mailer. Reset links open the appropriate customer account or store-team sign-in page on `FRONTEND_URL`; verification links use a signed, expiring API URL and return shoppers to the account page after verification. The local example uses `MAIL_MAILER=log`, so these emails (including their links) are written to `backend/storage/logs/laravel.log`; configure SMTP or another mail transport before sending customer emails from a deployed store.
+
 ## 4. Migration, Model, Controller, Routes, and CORS
 
 The `products` migration creates `id`, `name`, nullable `description`, decimal `price`, unsigned integer `quantity`, and Laravel timestamps. The `Product` model allows only the four writable product fields. `ProductController` validates input, returns JSON, uses 201 for creation, 200 for reads/updates/deletes, 422 for invalid input, and 404 when a product is missing.
@@ -109,6 +111,18 @@ npm run dev
 
 Open the Vite URL shown in the terminal (normally `http://localhost:5173`). Start MySQL before migrating or using the API. The backend launcher sets PHP's upload temporary directory to a writable project-local folder so image uploads don't emit a PHP startup notice.
 
+### First-time administrator setup
+
+From `backend/`, create an administrator account. The command prompts for a password without echoing it:
+
+```powershell
+D:\xampp\php\php.exe artisan app:make-admin admin@example.com
+```
+
+To create an order-fulfillment account with access limited to the order workspace, use `php artisan app:make-fulfillment-staff staff@example.com`. Both commands prompt for a password when creating a new account. Promoting an existing account revokes its current API tokens so it must sign in again with its new role.
+
+Open `http://localhost:5173/login` to manage products and orders. Customer browsing is at `http://localhost:5173/shop`; customers can sign in or register at `http://localhost:5173/account` and check out as a guest or signed-in customer. The local checkout uses cash on delivery, free shipping, and no tax calculation. Prices and stock are rechecked by Laravel when an order is placed.
+
 ## 7. REST API Examples
 
 All endpoints are under `http://localhost:8000/api`:
@@ -124,18 +138,24 @@ All endpoints are under `http://localhost:8000/api`:
 Example PowerShell requests (use `curl.exe`, not the `curl` alias):
 
 ```powershell
-curl.exe -H "Accept: application/json" http://localhost:8000/api/products
+$login = Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/auth/login `
+  -ContentType 'application/json' -Body '{"email":"admin@example.com","password":"YOUR_ADMIN_PASSWORD"}'
+$token = $login.token
+
+curl.exe -H "Accept: application/json" -H "Authorization: Bearer $token" http://localhost:8000/api/products
 
 curl.exe -X POST http://localhost:8000/api/products `
-  -H "Accept: application/json" -H "Content-Type: application/json" `
-  -d '{"name":"Notebook","description":"Grid paper, 120 pages","price":12.5,"quantity":20}'
+  -H "Accept: application/json" -H "Authorization: Bearer $token" -H "Content-Type: application/json" `
+  -d '{"name":"Notebook","category":"Books","condition":"New","description":"Grid paper, 120 pages","price":12.5,"quantity":20}'
 
 curl.exe -X PUT http://localhost:8000/api/products/1 `
-  -H "Accept: application/json" -H "Content-Type: application/json" `
-  -d '{"name":"Notebook","description":"Updated description","price":14,"quantity":18}'
+  -H "Accept: application/json" -H "Authorization: Bearer $token" -H "Content-Type: application/json" `
+  -d '{"name":"Notebook","category":"Books","condition":"New","description":"Updated description","price":14,"quantity":18}'
 
-curl.exe -X DELETE -H "Accept: application/json" http://localhost:8000/api/products/1
+curl.exe -X DELETE -H "Accept: application/json" -H "Authorization: Bearer $token" http://localhost:8000/api/products/1
 ```
+
+The product CRUD and order management APIs require an administrator bearer token. Public catalogue and guest checkout endpoints do not use this token.
 
 List response (`200 OK`):
 

@@ -7,6 +7,8 @@ export default function ProductItem({ product, onView, onEdit, onDelete, deletin
   return (
     <tr>
       <th scope="row" className="product-name">{product.name}</th>
+      <td>{product.sku || <span className="muted">—</span>}</td>
+      <td><span className={product.is_published ? 'publish-status published' : 'publish-status draft'}>{product.is_published ? 'Published' : 'Draft'}</span></td>
       <td className="description-cell">{product.description || <span className="muted">No description</span>}</td>
       <td className="numeric-cell">{formattedPrice}</td>
       <td className="numeric-cell">{product.quantity.toLocaleString()}</td>

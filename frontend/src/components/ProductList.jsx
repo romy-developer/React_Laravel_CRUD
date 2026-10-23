@@ -30,6 +30,8 @@ export default function ProductList({ products, loading, error, onView, onEdit, 
             <thead>
               <tr>
                 <th scope="col">Name</th>
+                <th scope="col">SKU</th>
+                <th scope="col">Store status</th>
                 <th scope="col">Description</th>
                 <th scope="col" className="numeric-cell">Price</th>
                 <th scope="col" className="numeric-cell">Quantity</th>

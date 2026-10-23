@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 
 const emptyProduct = {
   name: '',
+  sku: '',
   category: 'Other',
   condition: 'New',
   description: '',
   price: '',
+  compare_at_price: '',
   quantity: '',
+  is_published: true,
+  is_featured: false,
   image: null,
   remove_image: false,
+  images: [],
+  remove_image_ids: [],
 };
 
 function fieldError(errors, field) {
@@ -23,13 +29,19 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
   useEffect(() => {
     setValues(product ? {
       name: product.name,
+      sku: product.sku || '',
       category: product.category || 'Other',
       condition: product.condition || 'New',
       description: product.description || '',
       price: String(product.price),
+      compare_at_price: product.compare_at_price || '',
       quantity: String(product.quantity),
+      is_published: Boolean(product.is_published),
+      is_featured: Boolean(product.is_featured),
       image: null,
       remove_image: false,
+      images: [],
+      remove_image_ids: [],
     } : emptyProduct);
     if (previewObjectUrl.current) {
       URL.revokeObjectURL(previewObjectUrl.current);
@@ -43,7 +55,8 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
   }, []);
 
   function updateField(event) {
-    setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value, checked, type } = event.target;
+    setValues((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
   }
 
   function updateImage(event) {
@@ -61,6 +74,17 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
     }
     setImagePreview('');
     setValues((current) => ({ ...current, image: null, remove_image: Boolean(product?.image_url) }));
+  }
+
+  function updateGallery(event) {
+    setValues((current) => ({ ...current, images: [...current.images, ...Array.from(event.target.files || [])] }));
+    event.target.value = '';
+  }
+
+  function toggleGalleryRemoval(id) {
+    setValues((current) => ({ ...current, remove_image_ids: current.remove_image_ids.includes(id)
+      ? current.remove_image_ids.filter((imageId) => imageId !== id)
+      : [...current.remove_image_ids, id] }));
   }
 
   async function handleSubmit(event) {
@@ -111,6 +135,12 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
           {fieldError(errors, 'category') && <small className="field-error" id="category-error">{fieldError(errors, 'category')}</small>}
         </label>
 
+        <label className="field">
+          <span>SKU <span className="optional">Optional · must be unique</span></span>
+          <input name="sku" value={values.sku} onChange={updateField} maxLength="64" aria-invalid={Boolean(fieldError(errors, 'sku'))} />
+          {fieldError(errors, 'sku') && <small className="field-error">{fieldError(errors, 'sku')}</small>}
+        </label>
+
         <fieldset className="field radio-field" aria-describedby={fieldError(errors, 'condition') ? 'condition-error' : undefined}>
           <legend>Condition</legend>
           <div className="radio-options">
@@ -125,11 +155,21 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
         </fieldset>
 
         <div className="field image-field">
-          <span>Product image <span className="optional">Optional · JPG, PNG or WebP, up to 5 MB</span></span>
+          <span>Product images <span className="optional">Up to 10 images · JPG, PNG or WebP, 5 MB each</span></span>
           {imagePreview && <img className="image-preview" src={imagePreview} alt="Product preview" />}
           <input type="file" name="image" accept="image/jpeg,image/png,image/webp" onChange={updateImage} />
           {imagePreview && <button className="table-action table-action-danger image-remove" type="button" onClick={removeImage}>Remove image</button>}
           {fieldError(errors, 'image') && <small className="field-error">{fieldError(errors, 'image')}</small>}
+          {product?.images?.length > 0 && <div className="admin-image-gallery">{product.images.map((image) => {
+            const removing = values.remove_image_ids.includes(image.id);
+            return <label className={removing ? 'admin-gallery-image is-removing' : 'admin-gallery-image'} key={image.id}>
+              <img src={image.image_url} alt={image.alt_text || product.name} />
+              <span><input type="checkbox" checked={removing} onChange={() => toggleGalleryRemoval(image.id)} /> Remove</span>
+            </label>;
+          })}</div>}
+          <label className="field gallery-upload"><span>Add to gallery</span><input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple onChange={updateGallery} /></label>
+          {values.images.length > 0 && <small>{values.images.length} new image{values.images.length === 1 ? '' : 's'} selected</small>}
+          {fieldError(errors, 'images.0') && <small className="field-error">{fieldError(errors, 'images.0')}</small>}
         </div>
 
         <label className="field">
@@ -145,7 +185,7 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
           {fieldError(errors, 'description') && <small className="field-error" id="description-error">{fieldError(errors, 'description')}</small>}
         </label>
 
-        <div className="field-pair">
+        <div className="field-pair pricing-pair">
           <label className="field">
             <span>Price</span>
             <div className="input-prefix">
@@ -165,6 +205,23 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
             {fieldError(errors, 'price') && <small className="field-error" id="price-error">{fieldError(errors, 'price')}</small>}
           </label>
           <label className="field">
+            <span>Compare-at price <span className="optional">Optional</span></span>
+            <div className="input-prefix">
+              <span aria-hidden="true">$</span>
+              <input
+                type="number"
+                name="compare_at_price"
+                value={values.compare_at_price}
+                onChange={updateField}
+                min="0"
+                step="0.01"
+                aria-invalid={Boolean(fieldError(errors, 'compare_at_price'))}
+                aria-describedby={fieldError(errors, 'compare_at_price') ? 'compare-at-error' : undefined}
+              />
+            </div>
+            {fieldError(errors, 'compare_at_price') && <small className="field-error" id="compare-at-error">{fieldError(errors, 'compare_at_price')}</small>}
+          </label>
+          <label className="field">
             <span>Quantity</span>
             <input
               type="number"
@@ -180,6 +237,16 @@ export default function ProductForm({ product, onSubmit, onCancel, saving, error
             {fieldError(errors, 'quantity') && <small className="field-error" id="quantity-error">{fieldError(errors, 'quantity')}</small>}
           </label>
         </div>
+
+        <label className="publish-field">
+          <input type="checkbox" name="is_published" checked={values.is_published} onChange={updateField} />
+          <span><strong>Publish in the online store</strong><small>{values.is_published ? 'Customers can find and order this product.' : 'Keep this product as an admin-only draft.'}</small></span>
+        </label>
+
+        <label className="publish-field">
+          <input type="checkbox" name="is_featured" checked={values.is_featured} onChange={updateField} />
+          <span><strong>Feature on the store home page</strong><small>{values.is_featured ? 'This product can appear in the featured collection.' : 'Keep this product out of the featured collection.'}</small></span>
+        </label>
 
         <div className="form-actions">
           <button className="button button-primary" type="submit" disabled={saving}>
